@@ -1,1 +1,28 @@
-//Write a script that lists all documents with name starting by Holberton in the collection school
+#!/usr/bin/env python3
+
+import sys
+from pymongo import MongoClient
+
+# Check if the correct number of arguments is provided
+if len(sys.argv) != 2:
+    print("Usage: {} <database_name>".format(sys.argv[0]))
+    sys.exit(1)
+
+# Extract the database name from the command-line argument
+db_name = sys.argv[1]
+
+# Connect to MongoDB
+client = MongoClient('localhost', 27017)
+
+# Access the specified database
+db = client[db_name]
+
+# Access the "school" collection
+collection = db["school"]
+
+# Find documents with names starting with "Holberton"
+cursor = collection.find({"name": {"$regex": "^Holberton"}})
+
+# Print each document
+for document in cursor:
+    print(document)
