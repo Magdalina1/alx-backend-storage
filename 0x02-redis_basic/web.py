@@ -15,40 +15,36 @@ Tip: Use http://slowwly.robertomurray.co.uk to simulate
 a slow response and test your caching."""
 
 
-import redis
 import requests
+import redis
+import time
 from functools import wraps
+from typing import Callable
 
-r = redis.Redis()
+def cache_page(func: Callable) -> Callable:
+    @wraps(func)
+    def wrapper(url: str) -> str:
+        cache_key = f"page:{url}"
+        count_key = f"count:{url}"
 
+        cached_content = redis_client.get(cache_key)
+        if cached_content:
+            redis_client.incr(count_key)
+            return cached_content.decode('utf-8')
 
-def url_access_count(method):
-    """decorator for get_page function"""
-    @wraps(method)
-    def wrapper(url):
-        """wrapper function"""
-        key = "cached:" + url
-        cached_value = r.get(key)
-        if cached_value:
-            return cached_value.decode("utf-8")
+        content = func(url)
+        redis_client.setex(cache_key, 10, content)
+        redis_client.setex(count_key, 10, 1)
+        return content
 
-            # Get new content and update cache
-        key_count = "count:" + url
-        html_content = method(url)
-
-        r.incr(key_count)
-        r.set(key, html_content, ex=10)
-        r.expire(key, 10)
-        return html_content
     return wrapper
 
-
-@url_access_count
+@cache_page
 def get_page(url: str) -> str:
-    """obtain the HTML content of a particular"""
-    results = requests.get(url)
-    return results.text
-
+    response = requests.get(url)
+    return response.text
 
 if __name__ == "__main__":
-    get_page('http://slowwly.robertomurray.co.uk')
+    redis_client = redis.Redis()
+    url = "http://slowwly.robertomurray.co.uk/delay/10000/url/http://www.example.com"
+    start_time = time.time()
