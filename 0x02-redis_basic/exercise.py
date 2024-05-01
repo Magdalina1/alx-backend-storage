@@ -29,3 +29,43 @@ def call_history(method: Callable) -> Callable:
         self._redis.rpush(method.__qualname__ + ":outputs", output)
         return output
     return wrapper
+
+
+def replay(fn: Callable):
+    '''display the history of calls of a particular function.'''
+    r = redis.Redis()
+    func_name = fn.__qualname__
+    c = r.get(func_name)
+    try:
+        c = int(c.decode("utf-8"))
+    except Exception:
+        c = 0
+    print("{} was called {} times:".format(func_name, c))
+    inputs = r.lrange("{}:inputs".format(func_name), 0, -1)
+    outputs = r.lrange("{}:outputs".format(func_name), 0, -1)
+    for inp, outp in zip(inputs, outputs):
+        try:
+            inp = inp.decode("utf-8")
+        except Exception:
+            inp = ""
+        try:
+            outp = outp.decode("utf-8")
+        except Exception:
+            outp = ""
+        print("{}(*{}) -> {}".format(func_name, inp, outp))
+
+
+class Cache:
+    '''declares a Cache redis class'''
+    def __init__(self):
+        '''upon init to store an instance and flush'''
+        self._redis = redis.Redis(host='localhost', port=6379, db=0)
+        self._redis.flushdb()
+
+    @call_history
+    @count_calls
+    def store(self, data: Union[str, bytes, int, float]) -> str:
+        '''takes a data argument and returns a string'''
+        rkey = str(uuid4())
+        self._redis.set(rkey, data)
+        return rkey
