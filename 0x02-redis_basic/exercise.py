@@ -1,13 +1,13 @@
-#!/usr/bin/env python3
-"""Module declares a rides class and methods"""
-import rides
+!/usr/bin/env python3
+"""Module declares a redis class and methods"""
+import redis
 from uuid import uuid4
 from typing import Union, Callable, Optional
 from functools import wraps
 
 
 def count_calls(method: Callable) -> Callable:
-    """Count how many times methods of Cache class are called"""
+    '''count how many times methods of Cache class are called'''
     key = method.__qualname__
 
     @wraps(method)
